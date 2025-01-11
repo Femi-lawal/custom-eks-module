@@ -24,7 +24,7 @@ The Terraform code sets up the following AWS resources:
 ## Prerequisites
 
 - AWS Account and AWS CLI configured on your machine.
-- Terraform v1.5.1 or higher.
+- Terraform v1.9.6 or higher.
 - An S3 bucket and DynamoDB table for Terraform state management (see `terraform.tf`).
 
 ## Usage

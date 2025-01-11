@@ -16,6 +16,7 @@ resource "aws_eks_cluster" "main" {
   name                      = var.cluster_name
   role_arn                  = aws_iam_role.eks_cluster_role.arn
   enabled_cluster_log_types = var.enabled_cluster_log_types
+  version                   = var.eks_cluster_version
 
   vpc_config {
     subnet_ids             = concat(var.private_subnets, var.public_subnets)
@@ -197,10 +198,13 @@ resource "aws_launch_template" "eks_node_group" {
     }
   }
 
-  tags = {
-    "Name"                                      = "${var.cluster_name}-eks-node-group"
-    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-  }
+  tags = merge(
+    {
+      "Name"                                          = "${var.cluster_name}-eks-node-group"
+      "kubernetes.io/cluster/${var.cluster_name}"     = "owned"
+    },
+    var.additional_launch_template_tags
+  )
 
   lifecycle {
     create_before_destroy = true
@@ -222,6 +226,8 @@ resource "aws_iam_openid_connect_provider" "eks" {
 }
 
 resource "aws_eks_identity_provider_config" "eks" {
+  count = tonumber(var.eks_cluster_version) >= 1.30 ? 0 : 1
+
   cluster_name = aws_eks_cluster.main.name
   oidc {
     identity_provider_config_name = "oidc"
@@ -522,29 +528,37 @@ resource "kubernetes_config_map" "aws_auth" {
   }
 
   data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = aws_iam_role.eks_admins_role.arn
-        username = aws_iam_role.eks_admins_role.name
-        groups   = ["system:masters"]
-      },
-      {
-        rolearn  = aws_iam_role.node_role.arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = ["system:bootstrappers", "system:nodes"]
-      }
-    ])
-    mapUsers = yamlencode([
-      {
-        userarn  = data.aws_caller_identity.current.arn
-        username = split("/", data.aws_caller_identity.current.arn)[1]
-        groups   = ["system:masters"]
-      }
-    ])
+    mapRoles = yamlencode(
+      concat(
+        [
+          {
+            rolearn  = aws_iam_role.eks_admins_role.arn
+            username = aws_iam_role.eks_admins_role.name
+            groups   = ["system:masters"]
+          },
+          {
+            rolearn  = aws_iam_role.node_role.arn
+            username = "system:node:{{EC2PrivateDNSName}}"
+            groups   = ["system:bootstrappers", "system:nodes"]
+          }
+        ],
+        var.additional_role_mappings
+      )
+    )
+    mapUsers = yamlencode(
+      concat(
+        [
+          {
+            userarn  = data.aws_caller_identity.current.arn
+            username = split("/", data.aws_caller_identity.current.arn)[1]
+            groups   = ["system:masters"]
+          }
+        ],
+        var.additional_user_mappings
+      )
+    )
   }
-
 }
-
 
 ############################################################################################################
 # PLUGINS

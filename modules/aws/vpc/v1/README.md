@@ -4,7 +4,7 @@ This Terraform module creates a custom Virtual Private Cloud (VPC) designed to s
 
 ## Prerequisites
 
-- Terraform v1.5.1
+- Terraform v1.9.6
 - AWS provider v5.40.0
 
 ## Module Variables

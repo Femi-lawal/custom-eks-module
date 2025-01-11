@@ -1,5 +1,5 @@
 terraform {
-  required_version = "1.5.1"
+  required_version = "1.9.6"
 
   required_providers {
     aws = {
@@ -17,10 +17,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = ""
-    key            = ""
-    region         = ""
-    dynamodb_table = ""
+    bucket         = "femi-jan-2025"
+    key            = "terraform.tfstate"
+    region         = "us-east-2"
+    dynamodb_table = "terraform-lock-table"
     encrypt        = true
   }
 }
